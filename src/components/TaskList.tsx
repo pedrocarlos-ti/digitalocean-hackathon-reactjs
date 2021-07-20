@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 import "../styles/tasklist.scss";
 
 import { FiTrash, FiCheckSquare } from "react-icons/fi";
 
 interface Task {
-  id: number;
+  id: string;
   title: string;
   isComplete: boolean;
 }
@@ -14,38 +14,69 @@ export function TaskList() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTaskTitle, setNewTaskTitle] = useState("");
 
+  useEffect(() => {
+    fetch("https://digitalocean-hackathon-nodejs-thzwu.ondigitalocean.app/todo")
+      .then((response) => response.json())
+      .then((data) => setTasks(data.todo));
+  }, []);
+
   function handleCreateNewTask() {
     // Crie uma nova task com um id random, não permita criar caso o título seja vazio.
     if (newTaskTitle === "") return;
 
     const task: Task = {
-      id: Date.now(),
+      id: String(Date.now()),
       title: newTaskTitle,
       isComplete: false,
     };
 
-    setTasks((oldTaks) => [...oldTaks, task]);
-    setNewTaskTitle("");
+    fetch(
+      "https://digitalocean-hackathon-nodejs-thzwu.ondigitalocean.app/todo",
+      {
+        method: "POST",
+        headers: { "Content-type": "application/json;charset=UTF-8" },
+        body: JSON.stringify(task),
+      }
+    ).then((_) => {
+      setTasks((oldTaks) => [...oldTaks, task]);
+      setNewTaskTitle("");
+    });
   }
 
-  function handleToggleTaskCompletion(id: number) {
+  function handleToggleTaskCompletion(id: string) {
     // Altere entre `true` ou `false` o campo `isComplete` de uma task com dado ID
+    let _todo;
     const tasksList = tasks.map((task) => {
       if (task.id === id) {
         task.isComplete = !task.isComplete;
+        _todo = task;
       }
 
       return task;
     });
 
-    setTasks(tasksList);
+    fetch(
+      `https://digitalocean-hackathon-nodejs-thzwu.ondigitalocean.app/todo/${id}`,
+      {
+        method: "PUT",
+        headers: { "Content-type": "application/json;charset=UTF-8" },
+        body: JSON.stringify(_todo),
+      }
+    ).then((_) => {
+      setTasks(tasksList);
+    });
   }
 
-  function handleRemoveTask(id: number) {
+  function handleRemoveTask(id: string) {
     // Remova uma task da listagem pelo ID
     const tasksList = tasks.filter((task) => task.id !== id);
 
-    setTasks(tasksList);
+    fetch(
+      `https://digitalocean-hackathon-nodejs-thzwu.ondigitalocean.app/todo/${id}`,
+      { method: "DELETE" }
+    ).then(() => {
+      setTasks(tasksList);
+    });
   }
 
   return (
